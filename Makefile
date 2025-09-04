@@ -1,6 +1,6 @@
 # Makefile
 
-DB_URL = host=localhost user=postgres password=root dbname=404chan port=5432 sslmode=disable
+DB_URL = host=localhost user=postgres password=root dbname=FilmsCatalog port=5432 sslmode=disable
 MIGRATIONS_DIR = migrations
 DRIVER = postgres
 
