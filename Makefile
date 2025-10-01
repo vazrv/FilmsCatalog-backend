@@ -1,8 +1,11 @@
 # Makefile
+# шорткаты, экей сокращения команд. чтобы каждый раз в консоле не писать длинные команды. 
+# миграции - команды для работы с базой, подключение к ней. Контроль версий за обновлений в базе данных.  
 
 DB_URL = host=localhost user=postgres password=root dbname=FilmsCatalog port=5432 sslmode=disable
 MIGRATIONS_DIR = migrations
 DRIVER = postgres
+
 
 # --- Миграции ---
 migrate-up:
