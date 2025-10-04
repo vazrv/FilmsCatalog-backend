@@ -1,9 +1,6 @@
+// internal/config/config.go
+// Управление конфигурацией приложения через переменные окружения (.env).
 package config
-
-// Файл с настройками.
-
-// Тут хранятся параметры: порт сервера, адрес базы, логин и пароль.
-// Эти данные берутся из .env файла или ставятся по умолчанию.
 
 import (
 	"os"
@@ -12,42 +9,54 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Структура для хранения всех настроек приложения
+// Config хранит все настройки приложения
 type Config struct {
 	Env        string
-	Port       int
+	HTTPPort   string
 	DBHost     string
 	DBPort     int
 	DBUser     string
 	DBPassword string
 	DBName     string
+	JWTSecret  string
 }
 
-// Создание конфигурации с загрузкой значений из переменных окружения
-func NewConfig() *Config {
-	_ = godotenv.Load() // Загружаем переменные окружения из .env файла
+// Глобальный экземпляр конфигурации (синглтон)
+var globalConfig *Config
 
-	// Парсим числовые параметры с значениями по умолчанию
-	port, _ := strconv.Atoi(getEnv("PORT", "8080"))
+// NewConfig создаёт новый объект конфигурации, загружая значения из .env
+func NewConfig() *Config {
+	_ = godotenv.Load() // Игнорируем ошибку, если .env нет
+
+	port := getEnv("HTTP_PORT", "8080")
 	dbPort, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
 
 	return &Config{
 		Env:        getEnv("ENV", "development"),
-		Port:       port,
+		HTTPPort:   port,
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     dbPort,
 		DBUser:     getEnv("DB_USER", "postgres"),
 		DBPassword: getEnv("DB_PASS", "root"),
-		DBName:     getEnv("DB_NAME", "FilmsCatalog"),
+		DBName:     getEnv("DB_NAME", "filmscatalog"),
+		JWTSecret:  getEnv("JWT_SECRET", "very-secret-key-change-in-production"),
 	}
 }
 
-// Формирование адреса сервера в формате ":порт"
-func (c *Config) ServerAddress() string {
-	return ":" + strconv.Itoa(c.Port)
+// Get возвращает глобальную конфигурацию (синглтон)
+func Get() *Config {
+	if globalConfig == nil {
+		globalConfig = NewConfig()
+	}
+	return globalConfig
 }
 
-// Вспомогательная функция для получения переменных окружения
+// ServerAddress возвращает строку для запуска HTTP-сервера (например, ":8080")
+func (c *Config) ServerAddress() string {
+	return ":" + c.HTTPPort
+}
+
+// Вспомогательная функция для получения переменной окружения
 func getEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value

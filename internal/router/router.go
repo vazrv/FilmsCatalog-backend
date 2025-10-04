@@ -1,3 +1,5 @@
+// internal/router/router.go
+// Определяет маршруты API и подключает middleware.
 package router
 
 // Файл с маршрутами (какие URL доступны). Подключает middleware (логи, CORS, ID запроса).
@@ -7,12 +9,13 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 
+	"FilmsCatalog/internal/app/user"
 	"FilmsCatalog/internal/config"
 	"FilmsCatalog/internal/db"
 	"FilmsCatalog/internal/middleware"
 )
 
-// Обертка вокруг роутера Gin для добавления кастомных зависимостей
+// EngineWrapper оборачивает *gin.Engine для инъекции зависимостей
 type EngineWrapper struct {
 	*gin.Engine
 	cfg    *config.Config
@@ -20,9 +23,8 @@ type EngineWrapper struct {
 	db     *db.DB
 }
 
-// Создание нового роутера с настройкой режима работы
+// NewRouter создаёт новый роутер с нужным режимом работы (debug / release)
 func NewRouter(cfg *config.Config, logger *middleware.Logger, database *db.DB) *EngineWrapper {
-	// Устанавливаем режим работы Gin в зависимости от окружения
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	} else {
@@ -39,15 +41,15 @@ func NewRouter(cfg *config.Config, logger *middleware.Logger, database *db.DB) *
 	}
 }
 
-// Регистрация всех middleware и маршрутов приложения
+// RegisterRoutes регистрирует все маршруты приложения
 func (r *EngineWrapper) RegisterRoutes() {
-	// Подключаем цепочку middleware для обработки запросов
+	// Глобальные middleware
 	r.Use(r.logger.GinRecovery())
 	r.Use(r.logger.GinLogger())
 	r.Use(r.logger.RequestID())
 	r.Use(middleware.CORSMiddleware())
 
-	// Health check endpoint для мониторинга состояния приложения
+	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "healthy",
@@ -55,4 +57,19 @@ func (r *EngineWrapper) RegisterRoutes() {
 			"db":     "connected",
 		})
 	})
+
+	// Группа /api
+	api := r.Group("/api")
+	{
+		auth := api.Group("/auth")
+		{
+			auth.Use(middleware.JWTAuth()) // Теперь работает!
+
+			userRepo := user.NewUserRepository(r.db.DB) // Исправлено: r.db.DB вместо r.db.SQL
+			userService := user.NewUserService(userRepo)
+			userHandler := user.NewUserHandler(userService)
+
+			user.RegisterRoutes(auth, userHandler)
+		}
+	}
 }
