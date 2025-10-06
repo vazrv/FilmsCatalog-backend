@@ -9,6 +9,7 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 
+	"FilmsCatalog/internal/app/auth"
 	"FilmsCatalog/internal/app/user"
 	"FilmsCatalog/internal/config"
 	"FilmsCatalog/internal/db"
@@ -61,15 +62,37 @@ func (r *EngineWrapper) RegisterRoutes() {
 	// Группа /api
 	api := r.Group("/api")
 	{
-		auth := api.Group("/auth")
+		// === Публичные маршруты: регистрация и вход ===
+		authPublic := api.Group("/auth")
 		{
-			auth.Use(middleware.JWTAuth()) // Теперь работает!
+			// Инициализация слоёв auth
+			authRepo := auth.NewUserRepository(r.db.DB)
+			authService := auth.NewAuthService(authRepo)
+			authHandler := auth.NewAuthHandler(authService)
 
-			userRepo := user.NewUserRepository(r.db.DB) // Исправлено: r.db.DB вместо r.db.SQL
+			// Подключение маршрутов
+			auth.RegisterRoutes(authPublic, authHandler)
+		}
+
+		// === Защищённые маршруты: профиль и т.д. ===
+		authProtected := api.Group("/auth")
+		{
+			authProtected.Use(middleware.JWTAuth())
+
+			// Инициализация слоёв user
+			userRepo := user.NewUserRepository(r.db.DB)
 			userService := user.NewUserService(userRepo)
 			userHandler := user.NewUserHandler(userService)
 
-			user.RegisterRoutes(auth, userHandler)
+			// Подключение маршрутов
+			user.RegisterRoutes(authProtected, userHandler)
 		}
+
+		// Пример будущих маршрутов
+		// films := api.Group("/films")
+		// {
+		// 	filmHandler := film.NewFilmHandler(...)
+		// 	film.RegisterRoutes(films, filmHandler)
+		// }
 	}
 }
