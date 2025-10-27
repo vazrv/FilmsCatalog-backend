@@ -1,3 +1,4 @@
+// internal/app/user/handler.go
 package user
 
 import (
@@ -14,9 +15,7 @@ func NewUserHandler(service *UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 
-// GetProfile — возвращает профиль текущего пользователя
 func (h *UserHandler) GetProfile(c *gin.Context) {
-	// Получаем userID из middleware (JWT)
 	userID, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Пользователь не авторизован"})
@@ -29,5 +28,18 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, profile)
+	// Формируем ответ в нужном формате
+	c.JSON(http.StatusOK, gin.H{
+		"id":           profile.ID,
+		"username":     profile.Username,
+		"email":        profile.Email,
+		"avatar_url":   profile.AvatarURL,
+		"created_at":   profile.CreatedAt,
+		"is_admin":     profile.IsAdmin,
+		"stats": gin.H{
+			"favorites_count": profile.FavoritesCount,
+			"reviews_count":   profile.ReviewsCount,
+			"ratings_count":   profile.RatingsCount,
+		},
+	})
 }

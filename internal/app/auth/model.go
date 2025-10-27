@@ -2,17 +2,15 @@
 package auth
 
 type User struct {
-	ID             uint   `json:"id"`
-	Username       string `json:"username"`
-	Email          string `json:"email"`
-	PasswordHash   string `json:"-"`
-	AvatarURL      string `json:"avatar_url,omitempty"`
-	BackdropURL    string `json:"backdrop_url,omitempty"`
-	CreatedAt      string `json:"created_at"`
-	IsAdmin        bool   `json:"is_admin"`
-	FavoritesCount int    `json:"favorites_count"`
-	ReviewsCount   int    `json:"reviews_count"`
-	RatingsCount   int    `json:"ratings_count"`
+	ID         uint   `json:"id"`
+	Username   string `json:"username"`
+	Email      string `json:"email"`
+	PasswordHash string `json:"-"` // не отправляется в JSON
+	AvatarURL  string `json:"avatar_url,omitempty"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at,omitempty"`
+	IsAdmin    bool   `json:"is_admin"`
+	// Удалены: FavoritesCount, ReviewsCount, RatingsCount — их нет в БД
 }
 
 type RegisterRequest struct {

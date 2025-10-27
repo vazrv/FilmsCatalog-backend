@@ -1,22 +1,22 @@
 // internal/router/router.go
-// Определяет маршруты API и подключает middleware.
 package router
 
-// Файл с маршрутами (какие URL доступны). Подключает middleware (логи, CORS, ID запроса).
-// Есть маршрут /health, чтобы проверить, жив ли сервер. Тут будут добавляться новые маршруты (/films, /actors и т.п.).
+// подключение всех ендпоинтов и создается маршрутизация. ендпоинт адрес на котором лежат все данные,
+// по которому бэк взаимодействует с фронтом
 
-// Middleware (промежуточное ПО) - это функции, которые обрабатывают HTTP-запрос ДО того, как он попадет в основной обработчик.
 import (
 	"github.com/gin-gonic/gin"
 
+	"FilmsCatalog/internal/app/actor"
 	"FilmsCatalog/internal/app/auth"
+	"FilmsCatalog/internal/app/film"
+	"FilmsCatalog/internal/app/genre"
 	"FilmsCatalog/internal/app/user"
 	"FilmsCatalog/internal/config"
 	"FilmsCatalog/internal/db"
 	"FilmsCatalog/internal/middleware"
 )
 
-// EngineWrapper оборачивает *gin.Engine для инъекции зависимостей
 type EngineWrapper struct {
 	*gin.Engine
 	cfg    *config.Config
@@ -24,7 +24,6 @@ type EngineWrapper struct {
 	db     *db.DB
 }
 
-// NewRouter создаёт новый роутер с нужным режимом работы (debug / release)
 func NewRouter(cfg *config.Config, logger *middleware.Logger, database *db.DB) *EngineWrapper {
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -42,9 +41,7 @@ func NewRouter(cfg *config.Config, logger *middleware.Logger, database *db.DB) *
 	}
 }
 
-// RegisterRoutes регистрирует все маршруты приложения
 func (r *EngineWrapper) RegisterRoutes() {
-	// Глобальные middleware
 	r.Use(r.logger.GinRecovery())
 	r.Use(r.logger.GinLogger())
 	r.Use(r.logger.RequestID())
@@ -59,40 +56,53 @@ func (r *EngineWrapper) RegisterRoutes() {
 		})
 	})
 
-	// Группа /api
 	api := r.Group("/api")
 	{
-		// === Публичные маршруты: регистрация и вход ===
+		// === Auth: Public Routes ===
 		authPublic := api.Group("/auth")
 		{
-			// Инициализация слоёв auth
 			authRepo := auth.NewUserRepository(r.db.DB)
 			authService := auth.NewAuthService(authRepo)
 			authHandler := auth.NewAuthHandler(authService)
-
-			// Подключение маршрутов
 			auth.RegisterRoutes(authPublic, authHandler)
 		}
 
-		// === Защищённые маршруты: профиль и т.д. ===
+		// === Auth: Protected Routes (Profile) ===
 		authProtected := api.Group("/auth")
 		{
 			authProtected.Use(middleware.JWTAuth())
 
-			// Инициализация слоёв user
 			userRepo := user.NewUserRepository(r.db.DB)
 			userService := user.NewUserService(userRepo)
 			userHandler := user.NewUserHandler(userService)
-
-			// Подключение маршрутов
 			user.RegisterRoutes(authProtected, userHandler)
 		}
 
-		// Пример будущих маршрутов
-		// films := api.Group("/films")
-		// {
-		// 	filmHandler := film.NewFilmHandler(...)
-		// 	film.RegisterRoutes(films, filmHandler)
-		// }
+		// === Films API ===
+		films := api.Group("/films")
+		{
+			repo := film.NewRepository(r.db.DB)
+			service := film.NewService(repo)
+			handler := film.NewHandler(service)
+			film.RegisterRoutes(films, handler)
+		}
+
+		// === Genres API ===
+		genres := api.Group("/genres")
+		{
+			repo := genre.NewRepository(r.db.DB)
+			service := genre.NewService(repo)
+			handler := genre.NewHandler(service)
+			genre.RegisterRoutes(genres, handler)
+		}
+
+		// === Actors API ===
+		actors := api.Group("/actors")
+		{
+			repo := actor.NewRepository(r.db.DB)
+			service := actor.NewService(repo)
+			handler := actor.NewHandler(service)
+			actor.RegisterRoutes(actors, handler)
+		}
 	}
 }

@@ -155,19 +155,6 @@ CREATE INDEX idx_film_persons_person_id ON film_persons (person_id);
 
 CREATE INDEX idx_film_genres_film_id ON film_genres (film_id);
 
--- Добавляем основные жанры
-INSERT INTO
-    genres (name, slug)
-VALUES ('драма', 'drama'),
-    ('комедия', 'comedy'),
-    ('боевик', 'action'),
-    ('фантастика', 'sci-fi'),
-    ('ужасы', 'horror'),
-    ('триллер', 'thriller'),
-    ('мелодрама', 'melodrama'),
-    ('приключения', 'adventure'),
-    ('детектив', 'detective'),
-    ('фэнтези', 'fantasy');
 
 -- +goose StatementEnd
 

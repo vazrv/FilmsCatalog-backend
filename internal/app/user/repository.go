@@ -1,3 +1,4 @@
+// internal/app/user/repository.go
 package user
 
 import (
@@ -12,22 +13,20 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{DB: db}
 }
 
-func (r *UserRepository) GetProfileWithStats(userID uint) (*UserProfile, error) {
-	var profile UserProfile
+func (r *UserRepository) GetProfileWithStats(userID uint) (*UserProfileFlat, error) {
+	var profile UserProfileFlat
 
-	// Raw SQL с LEFT JOIN для подсчёта статистики
 	query := `
         SELECT 
             u.id,
             u.username,
             u.email,
             u.avatar_url,
-            u.backdrop_url,
             u.created_at,
             u.is_admin,
-            COALESCE(fav.count, 0) AS "stats.favorites_count",
-            COALESCE(rev.count, 0) AS "stats.reviews_count",
-            COALESCE(rat.count, 0) AS "stats.ratings_count"
+            COALESCE(fav.count, 0) AS favorites_count,
+            COALESCE(rev.count, 0) AS reviews_count,
+            COALESCE(rat.count, 0) AS ratings_count
         FROM users u
         LEFT JOIN (SELECT user_id, COUNT(*) AS count FROM favorites GROUP BY user_id) fav ON u.id = fav.user_id
         LEFT JOIN (SELECT user_id, COUNT(*) AS count FROM reviews GROUP BY user_id) rev ON u.id = rev.user_id
